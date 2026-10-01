@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Төслийн гаралт / тест файлууд (эх кодод оруулахгүй)
+02-integrity/baseline.json
+03-crypto/*.enc
+03-crypto/*.dec
+03-crypto/secret.txt
+
+# OS
+Thumbs.db
+.DS_Store
