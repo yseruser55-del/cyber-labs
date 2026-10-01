@@ -11,11 +11,19 @@
 | 1 | [Password Analyzer](01-password/) | Нууц үгийн хүчийг шалгаж оноо, зөвлөмж гаргана | Python, regex, zxcvbn |
 | 2 | [File Integrity Checker](02-integrity/) | SHA-256-аар файл өөрчлөгдсөн эсэхийг илрүүлнэ | Python, hashlib |
 | 3 | [Secure File Tool](03-crypto/) | Файлыг AES-256-GCM-ээр шифрлэх/задлах | Python, cryptography |
+| 4 | [Dashboard](04-dashboard/) | 3 төслийг нэгтгэсэн вэб дашбоард | Python, Flask |
 
 ## Суулгах
 ```
-pip install zxcvbn cryptography
+pip install -r requirements.txt
 ```
+
+## Дашбоард ажиллуулах
+```
+cd 04-dashboard
+python app.py
+```
+Дараа нь browser дээр http://127.0.0.1:5000 нээнэ. Зогсоох: `Ctrl+C`.
 
 ## Ашигласан ур чадвар
 - Нууц үгийн аюулгүй байдал, regex

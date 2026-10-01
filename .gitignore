@@ -9,6 +9,7 @@ venv/
 03-crypto/*.enc
 03-crypto/*.dec
 03-crypto/secret.txt
+04-dashboard/baseline.json
 
 # OS
 Thumbs.db

@@ -47,21 +47,43 @@ def derive_key(password: str, salt: bytes) -> bytes:
     return kdf.derive(password.encode("utf-8"))
 
 
+def encrypt_bytes(plaintext: bytes, password: str) -> bytes:
+    """Байтыг шифрлэж, MAGIC|salt|nonce|ciphertext хэлбэрээр буцаана."""
+    salt = os.urandom(SALT_LEN)
+    nonce = os.urandom(NONCE_LEN)
+    key = derive_key(password, salt)
+    aes = AESGCM(key)
+    ciphertext = aes.encrypt(nonce, plaintext, None)
+    return MAGIC + salt + nonce + ciphertext
+
+
+def decrypt_bytes(blob: bytes, password: str) -> bytes:
+    """Шифрлэсэн байтыг задална. Буруу нууц үг/эвдрэл бол ValueError өгнө."""
+    if not blob.startswith(MAGIC):
+        raise ValueError("Формат таарахгүй (энэ хэрэгслээр шифрлэсэн файл биш).")
+    offset = len(MAGIC)
+    salt = blob[offset:offset + SALT_LEN]
+    offset += SALT_LEN
+    nonce = blob[offset:offset + NONCE_LEN]
+    offset += NONCE_LEN
+    ciphertext = blob[offset:]
+    key = derive_key(password, salt)
+    aes = AESGCM(key)
+    try:
+        return aes.decrypt(nonce, ciphertext, None)
+    except Exception:
+        raise ValueError("Нууц үг буруу эсвэл файл эвдэрсэн байна.")
+
+
 def encrypt(in_path: str, password: str):
     with open(in_path, "rb") as f:
         plaintext = f.read()
 
-    salt = os.urandom(SALT_LEN)
-    nonce = os.urandom(NONCE_LEN)
-    key = derive_key(password, salt)
-
-    aes = AESGCM(key)
-    ciphertext = aes.encrypt(nonce, plaintext, None)
+    blob = encrypt_bytes(plaintext, password)
 
     out_path = in_path + ".enc"
     with open(out_path, "wb") as f:
-        # Формат: MAGIC | salt | nonce | ciphertext(+tag)
-        f.write(MAGIC + salt + nonce + ciphertext)
+        f.write(blob)
 
     print(f"Шифрлэв: {in_path} -> {out_path}")
     print(f"  Хэмжээ: {len(plaintext)} -> {os.path.getsize(out_path)} bytes")
@@ -71,25 +93,10 @@ def decrypt(in_path: str, password: str):
     with open(in_path, "rb") as f:
         blob = f.read()
 
-    if not blob.startswith(MAGIC):
-        print("Алдаа: формат таарахгүй байна (энэ хэрэгслээр шифрлэсэн файл биш).")
-        return
-
-    offset = len(MAGIC)
-    salt = blob[offset:offset + SALT_LEN]
-    offset += SALT_LEN
-    nonce = blob[offset:offset + NONCE_LEN]
-    offset += NONCE_LEN
-    ciphertext = blob[offset:]
-
-    key = derive_key(password, salt)
-    aes = AESGCM(key)
-
     try:
-        plaintext = aes.decrypt(nonce, ciphertext, None)
-    except Exception:
-        # GCM нь буруу нууц үг эсвэл эвдэрсэн файлыг энд барина
-        print("Задлах БҮТЭЛГҮЙТЛЭЭ: нууц үг буруу эсвэл файл эвдэрсэн байна.")
+        plaintext = decrypt_bytes(blob, password)
+    except ValueError as e:
+        print(f"Задлах БҮТЭЛГҮЙТЛЭЭ: {e}")
         return
 
     # .enc төгсгөлийг авч цэвэр нэр үүсгэнэ (жишээ: secret.txt.enc -> secret.txt.dec)
