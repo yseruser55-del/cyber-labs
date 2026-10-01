@@ -20,6 +20,7 @@ import sys
 import io
 import json
 import hashlib
+import base64
 from datetime import datetime
 
 from flask import Flask, request, render_template_string, send_file, redirect, url_for, flash
@@ -323,13 +324,161 @@ def integrity():
     return page(body, page="integrity", folder=folder, report=report)
 
 
-# ============ 3. Шифрлэлт ============
-@app.route("/crypto", methods=["GET"])
+# ============ 3. Crypto Lab ============
+def hashes_of(text):
+    b = text.encode("utf-8")
+    return {
+        "MD5": (hashlib.md5(b).hexdigest(), "⚠ эвдэрсэн — бүү ашигла"),
+        "SHA-1": (hashlib.sha1(b).hexdigest(), "⚠ сул — зөвлөдөггүй"),
+        "SHA-256": (hashlib.sha256(b).hexdigest(), "✓ найдвартай"),
+        "SHA-512": (hashlib.sha512(b).hexdigest(), "✓ найдвартай"),
+    }
+
+
+def caesar(text, shift):
+    out = []
+    for c in text:
+        if c.isupper():
+            out.append(chr((ord(c) - 65 + shift) % 26 + 65))
+        elif c.islower():
+            out.append(chr((ord(c) - 97 + shift) % 26 + 97))
+        else:
+            out.append(c)
+    return "".join(out)
+
+
+@app.route("/crypto", methods=["GET", "POST"])
 def crypto():
+    r = {}  # хэрэгсэл тус бүрийн үр дүн
+    if request.method == "POST":
+        tool = request.form.get("tool", "")
+        try:
+            if tool == "hash":
+                txt = request.form.get("text", "")
+                r["hash"] = {"input": txt, "rows": hashes_of(txt)}
+
+            elif tool == "salt":
+                pw = request.form.get("pw", "")
+                s1, s2 = os.urandom(8).hex(), os.urandom(8).hex()
+                r["salt"] = {
+                    "pw": pw,
+                    "no_salt": hashlib.sha256(pw.encode()).hexdigest(),
+                    "s1": s1, "h1": hashlib.sha256((s1 + pw).encode()).hexdigest(),
+                    "s2": s2, "h2": hashlib.sha256((s2 + pw).encode()).hexdigest(),
+                }
+
+            elif tool == "encode":
+                txt = request.form.get("text", "")
+                op = request.form.get("op", "")
+                if op == "b64enc":
+                    out = base64.b64encode(txt.encode()).decode()
+                elif op == "b64dec":
+                    out = base64.b64decode(txt).decode("utf-8", "replace")
+                elif op == "hexenc":
+                    out = txt.encode().hex()
+                elif op == "hexdec":
+                    out = bytes.fromhex(txt.strip()).decode("utf-8", "replace")
+                else:
+                    out = ""
+                r["encode"] = {"input": txt, "op": op, "output": out}
+
+            elif tool == "caesar":
+                txt = request.form.get("text", "")
+                mode = request.form.get("mode", "enc")
+                shift = int(request.form.get("shift", "3") or "3")
+                if mode == "enc":
+                    r["caesar"] = {"single": caesar(txt, shift), "shift": shift, "mode": mode}
+                elif mode == "dec":
+                    r["caesar"] = {"single": caesar(txt, -shift), "shift": shift, "mode": mode}
+                else:  # brute force
+                    r["caesar"] = {"brute": [(i, caesar(txt, -i)) for i in range(1, 26)], "mode": mode}
+        except Exception as e:
+            flash(f"Алдаа: {e}", "err")
+
     body = """
     <div class="card">
-      <h2>🔐 Secure File Tool (AES-256-GCM)</h2>
-      <p class="desc">Файлаа оруулж нууц үгээр шифрлэ эсвэл задал. Бүгд локал дээр боловсруулагдана.</p>
+      <h2>🔐 Crypto Lab</h2>
+      <p class="desc">Криптографийн ойлголтыг (hashing, salting, encoding, classic cipher) бодитоор туршиж үзэх лаб.
+      Бүгд локал дээр ажиллана. Доорх AES хэсэг бол жинхэнэ шифрлэлт; hash, encode нь ӨӨР ойлголт гэдгийг анзаар.</p>
+    </div>
+
+    <!-- 1. Hash Generator -->
+    <div class="card">
+      <h2>🧮 Hash Generator</h2>
+      <p class="desc">Текстээс hash тооцоол. Hash бол нэг чиглэлтэй (буцааж задрахгүй) — нууц үг хадгалах, бүрэн бүтэн байдал шалгахад хэрэглэнэ.</p>
+      <form method="post"><input type="hidden" name="tool" value="hash">
+        <label>Текст</label><input type="text" name="text" value="{{ r.hash.input if r.hash else 'password123' }}" required>
+        <button type="submit">Hash тооцоолох</button>
+      </form>
+      {% if r.hash %}
+      <table><tr><th>Алгоритм</th><th>Hash</th><th>Төлөв</th></tr>
+        {% for name, (h, note) in r.hash.rows.items() %}
+        <tr><td><strong>{{name}}</strong></td><td class="mono" style="font-size:12px;word-break:break-all">{{h}}</td><td class="muted">{{note}}</td></tr>
+        {% endfor %}
+      </table>
+      {% endif %}
+    </div>
+
+    <!-- 2. Salting demo -->
+    <div class="card">
+      <h2>🧂 Salting Demo</h2>
+      <p class="desc">Яагаад salt хэрэгтэй вэ? Ижил нууц үг ч өөр salt-тай бол ӨӨР hash өгдөг → rainbow table халдлагыг хаана.</p>
+      <form method="post"><input type="hidden" name="tool" value="salt">
+        <label>Нууц үг</label><input type="text" name="pw" value="{{ r.salt.pw if r.salt else 'hello' }}" required>
+        <button type="submit">Salt-тай/салтгүй харьцуулах</button>
+      </form>
+      {% if r.salt %}
+      <table>
+        <tr><td class="muted">Salt-гүй SHA-256</td><td class="mono" style="font-size:12px;word-break:break-all">{{r.salt.no_salt}}</td></tr>
+        <tr><td class="muted">Salt #1 = <code>{{r.salt.s1}}</code></td><td class="mono" style="font-size:12px;word-break:break-all">{{r.salt.h1}}</td></tr>
+        <tr><td class="muted">Salt #2 = <code>{{r.salt.s2}}</code></td><td class="mono" style="font-size:12px;word-break:break-all">{{r.salt.h2}}</td></tr>
+      </table>
+      <p class="muted">👆 Ижил нууц үг, гэхдээ salt өөр тул hash огт өөр боллоо.</p>
+      {% endif %}
+    </div>
+
+    <!-- 3. Encoding toolkit -->
+    <div class="card">
+      <h2>🔤 Encoding Toolkit (Base64 / Hex)</h2>
+      <p class="desc">⚠️ Encoding бол шифрлэлт БИШ — нууцлал өгөхгүй, хэн ч буцааж уншина. CTF, өгөгдлийн формат хувиргахад хэрэглэнэ.</p>
+      <form method="post"><input type="hidden" name="tool" value="encode">
+        <label>Текст</label><input type="text" name="text" value="{{ r.encode.input if r.encode else 'Hello Cyber' }}" required>
+        <button type="submit" name="op" value="b64enc">Base64 encode</button>
+        <button type="submit" name="op" value="b64dec" class="alt">Base64 decode</button>
+        <button type="submit" name="op" value="hexenc" class="alt">Hex encode</button>
+        <button type="submit" name="op" value="hexdec" class="alt">Hex decode</button>
+      </form>
+      {% if r.encode %}
+      <hr><p class="muted">Үр дүн (<code>{{r.encode.op}}</code>):</p>
+      <p class="mono" style="word-break:break-all;background:rgba(10,14,22,0.7);padding:12px;border-radius:10px;border:1px solid var(--border)">{{r.encode.output}}</p>
+      {% endif %}
+    </div>
+
+    <!-- 4. Caesar cipher -->
+    <div class="card">
+      <h2>🏛️ Caesar Cipher</h2>
+      <p class="desc">Хамгийн эртний шифр. Үсгийг тодорхой тоогоор шилжүүлнэ. Brute force-оор 25 түлхүүрийг бүгдийг нь туршиж задалж болно (яагаад сул болохыг харуулна).</p>
+      <form method="post"><input type="hidden" name="tool" value="caesar">
+        <label>Текст</label><input type="text" name="text" value="{{ r.caesar.single if r.caesar and r.caesar.single else 'Khoor Fdhvdu' }}" required>
+        <label>Shift (1-25)</label><input type="text" name="shift" value="{{ r.caesar.shift if r.caesar and r.caesar.shift else '3' }}">
+        <button type="submit" name="mode" value="enc">Encode</button>
+        <button type="submit" name="mode" value="dec" class="alt">Decode</button>
+        <button type="submit" name="mode" value="brute" class="alt">🔓 Brute force (бүгд)</button>
+      </form>
+      {% if r.caesar and r.caesar.single %}
+      <hr><p class="mono" style="background:rgba(10,14,22,0.7);padding:12px;border-radius:10px;border:1px solid var(--border)">{{r.caesar.single}}</p>
+      {% elif r.caesar and r.caesar.brute %}
+      <hr><p class="muted">25 түлхүүрийн үр дүн — утгатай мөрийг нүдээр ол:</p>
+      <table><tr><th>Shift</th><th>Үр дүн</th></tr>
+        {% for s, t in r.caesar.brute %}<tr><td class="mono">{{s}}</td><td class="mono">{{t}}</td></tr>{% endfor %}
+      </table>
+      {% endif %}
+    </div>
+
+    <!-- 5. AES file (жинхэнэ шифрлэлт) -->
+    <div class="card">
+      <h2>🔒 AES-256-GCM File Encryption</h2>
+      <p class="desc">Жинхэнэ шифрлэлт. Файлаа нууц үгээр шифрлэ, задал. Буруу нууц үг → амжилтгүй (GCM tamper detection).</p>
       <div class="split">
         <form method="post" action="/crypto/encrypt" enctype="multipart/form-data">
           <strong>🔒 Шифрлэх</strong>
@@ -344,10 +493,13 @@ def crypto():
           <button type="submit" class="alt">Задлах & татах</button>
         </form>
       </div>
-      <p class="muted" style="margin-top:18px">🛡️ Буруу нууц үгээр задлах оролдлого амжилтгүй болно (GCM tamper detection).</p>
+    </div>
+
+    <div class="card" style="border-color:rgba(99,102,241,0.3)">
+      <p class="muted" style="margin:0">🎓 <strong>Лабын ойлголт:</strong> Hash (нэг чиглэлт) ≠ Encoding (нууцлалгүй хувиргалт) ≠ Encryption (түлхүүртэй, буцаах боломжтой нууцлал). Гурвыг ялгаж ойлгох нь Cryptography domain-ий гол зорилго.</p>
     </div>
     """
-    return page(body, page="crypto")
+    return page(body, page="crypto", r=r)
 
 
 @app.route("/crypto/encrypt", methods=["POST"])
