@@ -46,55 +46,115 @@ BASE_HTML = """
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cyber Labs Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0d1117; --card:#161b22; --border:#30363d; --fg:#e6edf3;
-          --muted:#8b949e; --accent:#f85149; --ok:#3fb950; --warn:#d29922; }
+  :root {
+    --bg:#0a0e16; --bg2:#0e1420; --card:rgba(22,28,40,0.72); --border:rgba(255,255,255,0.08);
+    --fg:#e8edf5; --muted:#8894a8; --accent:#6366f1; --accent2:#a855f7;
+    --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+    --grad:linear-gradient(135deg,#6366f1 0%,#a855f7 50%,#ec4899 100%);
+  }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--fg); }
-  header { background:#010409; border-bottom:1px solid var(--border); padding:16px 24px; }
-  header h1 { margin:0; font-size:20px; display:flex; align-items:center; gap:10px; }
-  .wrap { max-width:900px; margin:0 auto; padding:24px 16px; }
-  nav { display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap; }
-  nav a { padding:8px 14px; border:1px solid var(--border); border-radius:8px;
-          color:var(--fg); text-decoration:none; font-size:14px; }
-  nav a:hover, nav a.active { background:var(--card); border-color:var(--accent); }
-  .card { background:var(--card); border:1px solid var(--border); border-radius:12px;
-          padding:20px; margin-bottom:20px; }
-  .card h2 { margin:0 0 6px; font-size:18px; }
-  .card p.desc { color:var(--muted); margin:0 0 16px; font-size:14px; }
-  label { display:block; margin:12px 0 6px; font-size:14px; color:var(--muted); }
+  html { scroll-behavior:smooth; }
+  body { margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--fg);
+         background:var(--bg); min-height:100vh;
+         background-image:radial-gradient(900px circle at 10% -10%, rgba(99,102,241,0.18), transparent 45%),
+                          radial-gradient(800px circle at 100% 0%, rgba(168,85,247,0.14), transparent 40%); }
+  code, .mono { font-family:'JetBrains Mono',monospace; }
+
+  header { position:sticky; top:0; z-index:10; backdrop-filter:blur(14px);
+           background:rgba(10,14,22,0.7); border-bottom:1px solid var(--border); }
+  .hwrap { max-width:960px; margin:0 auto; padding:16px 20px; display:flex;
+           align-items:center; justify-content:space-between; gap:16px; }
+  .brand { display:flex; align-items:center; gap:12px; font-weight:800; font-size:18px; letter-spacing:-0.3px; }
+  .logo { width:34px; height:34px; border-radius:10px; background:var(--grad);
+          display:grid; place-items:center; font-size:18px; box-shadow:0 6px 20px rgba(99,102,241,0.4); }
+  .live { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 0 rgba(34,197,94,0.6); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(34,197,94,0.5);} 70%{box-shadow:0 0 0 8px rgba(34,197,94,0);} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0);} }
+
+  .wrap { max-width:960px; margin:0 auto; padding:28px 20px 60px; }
+  nav { display:flex; gap:8px; margin-bottom:28px; flex-wrap:wrap; }
+  nav a { padding:9px 16px; border:1px solid var(--border); border-radius:999px;
+          color:var(--muted); text-decoration:none; font-size:14px; font-weight:500; transition:all .2s; }
+  nav a:hover { color:var(--fg); border-color:rgba(255,255,255,0.2); transform:translateY(-1px); }
+  nav a.active { color:#fff; background:var(--grad); border-color:transparent; box-shadow:0 6px 18px rgba(99,102,241,0.35); }
+
+  .card { background:var(--card); border:1px solid var(--border); border-radius:18px;
+          padding:26px; margin-bottom:22px; backdrop-filter:blur(12px);
+          box-shadow:0 10px 40px rgba(0,0,0,0.35); animation:rise .4s ease both; }
+  @keyframes rise { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  .card h2 { margin:0 0 6px; font-size:19px; font-weight:700; letter-spacing:-0.3px; }
+  .card p.desc { color:var(--muted); margin:0 0 18px; font-size:14px; line-height:1.55; }
+
+  .hero h2 { font-size:30px; background:var(--grad); -webkit-background-clip:text;
+             background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px; }
+
+  label { display:block; margin:14px 0 7px; font-size:13px; font-weight:500; color:var(--muted); }
   input[type=text], input[type=password], input[type=file], textarea {
-      width:100%; padding:10px; background:#0d1117; border:1px solid var(--border);
-      border-radius:8px; color:var(--fg); font-size:14px; }
-  button { margin-top:14px; padding:10px 18px; background:var(--accent); color:#fff;
-           border:none; border-radius:8px; font-size:14px; cursor:pointer; }
-  button:hover { opacity:0.9; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
-  .grid a { text-decoration:none; }
-  .meter { height:14px; background:#0d1117; border-radius:7px; overflow:hidden; border:1px solid var(--border); margin:8px 0; }
-  .meter > div { height:100%; transition:width .3s; }
-  .tag { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
-  table { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; }
-  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--border); }
-  th { color:var(--muted); font-weight:600; }
-  .flash { padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:14px; }
-  .flash.ok { background:#1a2f1a; border:1px solid var(--ok); }
-  .flash.err { background:#2f1a1a; border:1px solid var(--accent); }
-  code { background:#0d1117; padding:2px 6px; border-radius:4px; font-size:13px; }
-  .muted { color:var(--muted); font-size:13px; }
+      width:100%; padding:12px 14px; background:rgba(10,14,22,0.6); border:1px solid var(--border);
+      border-radius:12px; color:var(--fg); font-size:14px; transition:all .2s; font-family:inherit; }
+  input:focus, textarea:focus { outline:none; border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(99,102,241,0.18); }
+  input[type=file]::file-selector-button { background:var(--border); color:var(--fg); border:none;
+      padding:7px 12px; border-radius:8px; margin-right:10px; cursor:pointer; font-family:inherit; }
+  button { margin-top:18px; padding:12px 22px; background:var(--grad); color:#fff;
+           border:none; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;
+           transition:all .2s; box-shadow:0 6px 18px rgba(99,102,241,0.3); }
+  button:hover { transform:translateY(-2px); box-shadow:0 10px 26px rgba(99,102,241,0.45); }
+  button.alt { background:rgba(255,255,255,0.06); box-shadow:none; border:1px solid var(--border); }
+  button.alt:hover { background:rgba(255,255,255,0.1); }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:18px; }
+  .grid a { text-decoration:none; color:inherit; }
+  .tool { position:relative; overflow:hidden; transition:all .25s; cursor:pointer; margin:0; height:100%; }
+  .tool:hover { transform:translateY(-4px); border-color:rgba(99,102,241,0.5); }
+  .tool .ico { width:46px; height:46px; border-radius:13px; display:grid; place-items:center;
+               font-size:22px; margin-bottom:14px; background:rgba(99,102,241,0.14); }
+  .tool .arrow { position:absolute; top:22px; right:24px; color:var(--muted); transition:all .2s; }
+  .tool:hover .arrow { color:var(--accent); transform:translate(3px,-3px); }
+
+  .meter { height:12px; background:rgba(10,14,22,0.7); border-radius:999px; overflow:hidden;
+           border:1px solid var(--border); margin:12px 0; }
+  .meter > div { height:100%; border-radius:999px; transition:width .6s cubic-bezier(.2,.8,.2,1); }
+  .tag { display:inline-block; padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.3px; }
+  .big { font-size:34px; font-weight:800; letter-spacing:-1px; }
+
+  table { width:100%; border-collapse:collapse; margin-top:14px; font-size:14px; }
+  th, td { text-align:left; padding:11px 10px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
+  tr:last-child td { border-bottom:none; }
+
+  .flash { padding:13px 16px; border-radius:12px; margin-bottom:18px; font-size:14px; font-weight:500;
+           display:flex; align-items:center; gap:10px; animation:rise .3s ease both; }
+  .flash.ok { background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.4); color:#86efac; }
+  .flash.err { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; }
+  code { background:rgba(10,14,22,0.7); padding:3px 8px; border-radius:6px; font-size:13px; border:1px solid var(--border); }
+  .muted { color:var(--muted); font-size:13px; line-height:1.6; }
+  hr { border:none; border-top:1px solid var(--border); margin:22px 0; }
+  ul { margin:6px 0; padding-left:20px; }
+  li { margin:4px 0; }
+  .split { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:560px){ .split{grid-template-columns:1fr;} }
 </style>
 </head>
 <body>
-<header><h1>🛡️ Cyber Labs Dashboard</h1></header>
+<header>
+  <div class="hwrap">
+    <div class="brand"><span class="logo">🛡️</span> Cyber Labs</div>
+    <div class="live"><span class="dot"></span> Локал · 127.0.0.1</div>
+  </div>
+</header>
 <div class="wrap">
   <nav>
     <a href="/" class="{{ 'active' if page=='home' }}">Нүүр</a>
     <a href="/password" class="{{ 'active' if page=='password' }}">🔑 Нууц үг</a>
-    <a href="/integrity" class="{{ 'active' if page=='integrity' }}">🧾 Файл бүрэн бүтэн</a>
+    <a href="/integrity" class="{{ 'active' if page=='integrity' }}">🧾 Бүрэн бүтэн байдал</a>
     <a href="/crypto" class="{{ 'active' if page=='crypto' }}">🔐 Шифрлэлт</a>
   </nav>
   {% with msgs = get_flashed_messages(with_categories=true) %}
-    {% for cat, m in msgs %}<div class="flash {{cat}}">{{ m }}</div>{% endfor %}
+    {% for cat, m in msgs %}<div class="flash {{cat}}">{{ '✓' if cat=='ok' else '⚠' }} {{ m }}</div>{% endfor %}
   {% endwith %}
   {{ body|safe }}
 </div>
@@ -111,20 +171,33 @@ def page(body_html, **ctx):
 @app.route("/")
 def home():
     body = """
-    <div class="card">
-      <h2>Кибер аюулгүй байдлын дадлагын хэрэгслүүд</h2>
-      <p class="desc">3 бие даан хийсэн төслийг нэг дашбоардаар. Бүгд локал дээр ажиллана.</p>
-      <div class="grid">
-        <a href="/password"><div class="card" style="margin:0">
-          <h2>🔑 Password Analyzer</h2>
-          <p class="desc">Нууц үгийн хүчийг шалгаж оноо, зөвлөмж гаргана.</p></div></a>
-        <a href="/integrity"><div class="card" style="margin:0">
-          <h2>🧾 File Integrity</h2>
-          <p class="desc">SHA-256-аар файл өөрчлөгдсөн эсэхийг илрүүлнэ.</p></div></a>
-        <a href="/crypto"><div class="card" style="margin:0">
-          <h2>🔐 Secure File</h2>
-          <p class="desc">Файлыг AES-256-GCM-ээр шифрлэх / задлах.</p></div></a>
-      </div>
+    <div class="card hero">
+      <h2>Кибер аюулгүй байдлын хэрэгслүүд</h2>
+      <p class="desc">Бие даан хийсэн 3 төслийг нэгтгэсэн дашбоард. Бүгд зөвхөн таны компьютер дээр,
+      локалд ажиллана — байгууллагын систем, өгөгдөлд хандахгүй.</p>
+    </div>
+    <div class="grid">
+      <a href="/password"><div class="card tool">
+        <span class="arrow">↗</span>
+        <div class="ico">🔑</div>
+        <h2>Password Analyzer</h2>
+        <p class="desc">Нууц үгийн урт, нийлмэл байдал, түгээмэл загварыг шалгаж оноо, зөвлөмж гаргана.</p>
+        <span class="muted mono">Python · regex · zxcvbn</span>
+      </div></a>
+      <a href="/integrity"><div class="card tool">
+        <span class="arrow">↗</span>
+        <div class="ico">🧾</div>
+        <h2>File Integrity</h2>
+        <p class="desc">SHA-256 hash-аар файл өөрчлөгдсөн, нэмэгдсэн, устсан эсэхийг илрүүлнэ.</p>
+        <span class="muted mono">Python · hashlib</span>
+      </div></a>
+      <a href="/crypto"><div class="card tool">
+        <span class="arrow">↗</span>
+        <div class="ico">🔐</div>
+        <h2>Secure File</h2>
+        <p class="desc">Файлыг нууц үгээр AES-256-GCM ашиглан шифрлэх, задлах.</p>
+        <span class="muted mono">Python · cryptography</span>
+      </div></a>
     </div>
     """
     return page(body, page="home")
@@ -150,9 +223,9 @@ def password():
         <button type="submit">Шалгах</button>
       </form>
       {% if result %}
-      <hr style="border-color:var(--border);margin:20px 0">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong style="font-size:22px">{{ result.score }}/100</strong>
+      <hr>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
+        <span class="big" style="color:{{result.color}}">{{ result.score }}<span style="font-size:16px;color:var(--muted)">/100</span></span>
         <span class="tag" style="background:{{result.color}}22;color:{{result.color}}">{{ result.rating }}</span>
       </div>
       <div class="meter"><div style="width:{{result.score}}%;background:{{result.color}}"></div></div>
@@ -229,11 +302,11 @@ def integrity():
         <label>Фолдерын бүтэн зам</label>
         <input type="text" name="folder" value="{{ folder }}" placeholder="C:\\Users\\...\\testdir">
         <button type="submit" name="action" value="init">1) Baseline үүсгэх</button>
-        <button type="submit" name="action" value="check" style="background:#1f6feb">2) Шалгах</button>
+        <button type="submit" name="action" value="check" class="alt">2) Шалгах</button>
       </form>
       {% if report %}
-      <hr style="border-color:var(--border);margin:20px 0">
-      <p class="muted">Baseline огноо: {{ report.created }}</p>
+      <hr>
+      <p class="muted">Baseline огноо: <code>{{ report.created }}</code></p>
       {% if not report.changed and not report.added and not report.removed %}
         <div class="flash ok">OK — Өөрчлөлт илрээгүй. Бүх файл бүрэн бүтэн.</div>
       {% else %}
@@ -257,21 +330,21 @@ def crypto():
     <div class="card">
       <h2>🔐 Secure File Tool (AES-256-GCM)</h2>
       <p class="desc">Файлаа оруулж нууц үгээр шифрлэ эсвэл задал. Бүгд локал дээр боловсруулагдана.</p>
-      <div class="grid">
+      <div class="split">
         <form method="post" action="/crypto/encrypt" enctype="multipart/form-data">
-          <strong>Шифрлэх</strong>
+          <strong>🔒 Шифрлэх</strong>
           <label>Файл сонгох</label><input type="file" name="file" required>
           <label>Нууц үг</label><input type="password" name="pw" required>
           <button type="submit">Шифрлэх & татах</button>
         </form>
         <form method="post" action="/crypto/decrypt" enctype="multipart/form-data">
-          <strong>Задлах</strong>
+          <strong>🔓 Задлах</strong>
           <label>.enc файл сонгох</label><input type="file" name="file" required>
           <label>Нууц үг</label><input type="password" name="pw" required>
-          <button type="submit" style="background:#1f6feb">Задлах & татах</button>
+          <button type="submit" class="alt">Задлах & татах</button>
         </form>
       </div>
-      <p class="muted" style="margin-top:16px">Буруу нууц үгээр задлах оролдлого амжилтгүй болно (GCM tamper detection).</p>
+      <p class="muted" style="margin-top:18px">🛡️ Буруу нууц үгээр задлах оролдлого амжилтгүй болно (GCM tamper detection).</p>
     </div>
     """
     return page(body, page="crypto")
