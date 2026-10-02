@@ -22,9 +22,11 @@ Premium dark-mode cybersecurity workspace (Flask).
 import os
 import sys
 import io
+import re
 import json
 import hashlib
 import base64
+from collections import Counter
 from datetime import datetime
 
 from flask import Flask, request, render_template_string, send_file, redirect, url_for, flash
@@ -89,6 +91,57 @@ def scan_folder(folder):
             except OSError:
                 pass
     return result
+
+
+# --- Log Analyzer: SSH failed-login parsing (LAB-008 логик) ---
+FAILED_RE = re.compile(
+    r"Failed password for (?:invalid user )?(?P<user>\S+) from (?P<ip>\d{1,3}(?:\.\d{1,3}){3})"
+)
+ACCEPT_RE = re.compile(r"Accepted password for")
+
+
+def analyze_log(text, threshold=5):
+    by_ip, by_user = Counter(), Counter()
+    failed = accepted = 0
+    for line in text.splitlines():
+        m = FAILED_RE.search(line)
+        if m:
+            failed += 1
+            by_ip[m.group("ip")] += 1
+            by_user[m.group("user")] += 1
+        elif ACCEPT_RE.search(line):
+            accepted += 1
+    suspects = [ip for ip, c in by_ip.items() if c >= threshold]
+    return {
+        "failed": failed, "accepted": accepted,
+        "unique_ips": len(by_ip),
+        "top_ips": by_ip.most_common(8),
+        "top_users": by_user.most_common(8),
+        "suspects": suspects, "threshold": threshold,
+    }
+
+
+# --- Network Scanner: Nmap output parsing ---
+NMAP_HOST_RE = re.compile(r"Nmap scan report for (?P<host>.+)")
+NMAP_PORT_RE = re.compile(r"(?P<port>\d+)/(?P<proto>tcp|udp)\s+(?P<state>open|closed|filtered)\s+(?P<svc>\S+)")
+
+
+def parse_nmap(text):
+    hosts = []
+    cur = None
+    for line in text.splitlines():
+        mh = NMAP_HOST_RE.search(line)
+        if mh:
+            cur = {"host": mh.group("host").strip(), "ports": []}
+            hosts.append(cur)
+            continue
+        mp = NMAP_PORT_RE.search(line)
+        if mp and cur is not None:
+            cur["ports"].append({
+                "port": mp.group("port"), "proto": mp.group("proto"),
+                "state": mp.group("state"), "svc": mp.group("svc"),
+            })
+    return hosts
 
 
 # ====================================================================
@@ -272,12 +325,12 @@ SHELL = """
     <a class="navitem soon" href="/soon?m=Threat Intel"><span class="ic">🌐</span> Threat Intel<span class="dot"></span></a>
 
     <div class="navgroup">Analysis</div>
-    <a class="navitem soon" href="/soon?m=Log Analyzer"><span class="ic">📄</span> Log Analyzer<span class="dot"></span></a>
-    <a class="navitem soon" href="/soon?m=PCAP Analyzer"><span class="ic">🔎</span> PCAP Analyzer<span class="dot"></span></a>
-    <a class="navitem soon" href="/soon?m=Network Scanner"><span class="ic">📶</span> Network Scanner<span class="dot"></span></a>
+    <a class="navitem {{ 'active' if active=='log' }}" href="/log-analyzer"><span class="ic">📄</span> Log Analyzer</a>
+    <a class="navitem {{ 'active' if active=='scanner' }}" href="/scanner"><span class="ic">📶</span> Network Scanner</a>
     <a class="navitem {{ 'active' if active=='integrity' }}" href="/integrity"><span class="ic">🧾</span> File Integrity</a>
     <a class="navitem {{ 'active' if active=='crypto' }}" href="/crypto"><span class="ic">🔐</span> Crypto Lab</a>
     <a class="navitem {{ 'active' if active=='password' }}" href="/password"><span class="ic">🔑</span> Password Analyzer</a>
+    <a class="navitem soon" href="/soon?m=PCAP Analyzer"><span class="ic">🔎</span> PCAP Analyzer<span class="dot"></span></a>
 
     <div class="navgroup">Learning</div>
     <a class="navitem soon" href="/soon?m=Roadmap"><span class="ic">🗺️</span> Roadmap<span class="dot"></span></a>
@@ -292,6 +345,7 @@ SHELL = """
     <a class="navitem soon" href="/soon?m=Daily Scrum"><span class="ic">☀️</span> Daily Scrum<span class="dot"></span></a>
 
     <div class="navgroup">System</div>
+    <a class="navitem {{ 'active' if active=='help' }}" href="/help"><span class="ic">❓</span> Хэрхэн ашиглах</a>
     <a class="navitem soon" href="/soon?m=Reports"><span class="ic">📑</span> Reports<span class="dot"></span></a>
     <a class="navitem soon" href="/soon?m=Settings"><span class="ic">⚙️</span> Settings<span class="dot"></span></a>
   </aside>
@@ -396,8 +450,8 @@ def home():
         <button class="ai-send" type="submit">Send</button>
       </form>
       <div class="chips">
-        <a class="chip" href="/soon?m=Log Analyzer">📄 Analyze Logs</a>
-        <a class="chip" href="/soon?m=PCAP Analyzer">🔎 Analyze PCAP</a>
+        <a class="chip" href="/log-analyzer">📄 Analyze Logs</a>
+        <a class="chip" href="/scanner">📶 Network Scan</a>
         <a class="chip" href="/crypto">🔐 Crypto Lab</a>
         <a class="chip" href="/integrity">🧾 File Integrity</a>
         <a class="chip" href="/password">🔑 Password Check</a>
@@ -682,6 +736,217 @@ def crypto_decrypt():
     name = f.filename[:-4] if f.filename.endswith(".enc") else f.filename + ".dec"
     return send_file(io.BytesIO(plain), as_attachment=True, download_name=name,
                      mimetype="application/octet-stream")
+
+
+# ====================================================================
+# Log Analyzer (бодит — SSH failed login detection)
+# ====================================================================
+SAMPLE_LOG = """Oct  2 10:15:32 server sshd[2345]: Failed password for root from 192.168.56.10 port 51920 ssh2
+Oct  2 10:15:34 server sshd[2346]: Failed password for root from 192.168.56.10 port 51921 ssh2
+Oct  2 10:15:36 server sshd[2347]: Failed password for root from 192.168.56.10 port 51922 ssh2
+Oct  2 10:15:38 server sshd[2348]: Failed password for root from 192.168.56.10 port 51923 ssh2
+Oct  2 10:15:40 server sshd[2349]: Failed password for invalid user admin from 192.168.56.10 port 51924 ssh2
+Oct  2 10:16:01 server sshd[2360]: Accepted password for user1 from 10.0.0.22 port 44100 ssh2
+Oct  2 10:22:45 server sshd[2410]: Failed password for invalid user oracle from 203.0.113.9 port 60100 ssh2
+Oct  2 10:22:47 server sshd[2411]: Failed password for invalid user postgres from 203.0.113.9 port 60101 ssh2
+Oct  2 10:22:49 server sshd[2412]: Failed password for invalid user git from 203.0.113.9 port 60102 ssh2
+Oct  2 10:22:51 server sshd[2413]: Failed password for invalid user admin from 203.0.113.9 port 60103 ssh2
+Oct  2 10:22:53 server sshd[2414]: Failed password for root from 203.0.113.9 port 60104 ssh2"""
+
+
+@app.route("/log-analyzer", methods=["GET", "POST"])
+def log_analyzer():
+    res = None
+    text = ""
+    if request.method == "POST":
+        f = request.files.get("file")
+        if f and f.filename:
+            text = f.read().decode("utf-8", "replace")
+        else:
+            text = request.form.get("text", "")
+        if text.strip():
+            res = analyze_log(text)
+            if res["suspects"]:
+                res["summary"] = (f"{res['failed']} амжилтгүй нэвтрэлт илэрлээ. "
+                                  f"{len(res['suspects'])} IP босго (5) давсан → brute-force сэжигтэй: "
+                                  f"{', '.join(res['suspects'])}. Эдгээрийг firewall дээр хаахыг зөвлөж байна.")
+            else:
+                res["summary"] = f"{res['failed']} амжилтгүй нэвтрэлт. Босго давсан сэжигтэй IP алга."
+    main = """
+    <div class="page-h">Analysis</div>
+    <div class="page-t">📄 Log Analyzer</div>
+    <p class="page-s">SSH auth.log оруулж амжилтгүй нэвтрэлт, brute-force хэв маягийг илрүүлнэ.
+    Лог файл сонгох эсвэл доош буулгаж тавь. (LAB-008-ийн логик дээр суурилсан — бодит.)</p>
+    <div class="card">
+      <form method="post" enctype="multipart/form-data">
+        <label>Лог файл (.log / .txt) — эсвэл доорх талбарт буулгана</label>
+        <input type="file" name="file">
+        <label>Эсвэл лог текст</label>
+        <textarea name="text" rows="7" style="width:100%;padding:11px 13px;background:rgba(7,10,18,.6);border:1px solid var(--border);border-radius:11px;color:var(--fg);font-family:'JetBrains Mono',monospace;font-size:12px" placeholder="auth.log мөрүүдээ энд буулга...">{{ text }}</textarea>
+        <button type="submit">Шинжлэх</button>
+        <button type="submit" name="demo" value="1" formmethod="get" formaction="/log-analyzer/demo" class="alt">Жишээ логоор туршъя</button>
+      </form>
+      {% if res %}
+      <hr>
+      <div class="metrics" style="grid-template-columns:repeat(4,1fr)">
+        <div class="metric"><div class="val">{{res.failed}}</div><div class="lab">Амжилтгүй</div></div>
+        <div class="metric"><div class="val">{{res.accepted}}</div><div class="lab">Амжилттай</div></div>
+        <div class="metric"><div class="val">{{res.unique_ips}}</div><div class="lab">Unique IP</div></div>
+        <div class="metric"><div class="val" style="color:var(--crit)">{{res.suspects|length}}</div><div class="lab">Сэжигтэй IP</div></div>
+      </div>
+      <div class="ai-hero" style="margin-top:4px"><b>🤖 AI Summary:</b> <span class="muted">{{res.summary}}</span></div>
+      <div class="grid2">
+        <div><h2 style="font-size:15px">Top эх IP</h2><table><tr><th>IP</th><th>Оролдлого</th></tr>
+          {% for ip,c in res.top_ips %}<tr><td class="mono">{{ip}}</td><td>{{c}} {% if c>=res.threshold %}<span class="badge b-crit">BRUTE</span>{% endif %}</td></tr>{% endfor %}
+        </table></div>
+        <div><h2 style="font-size:15px">Онилогдсон хэрэглэгч</h2><table><tr><th>User</th><th>Оролдлого</th></tr>
+          {% for u,c in res.top_users %}<tr><td class="mono">{{u}}</td><td>{{c}}</td></tr>{% endfor %}
+        </table></div>
+      </div>
+      {% endif %}
+    </div>
+    """
+    return shell(main, "log", "Log Analyzer", res=res, text=text)
+
+
+@app.route("/log-analyzer/demo")
+def log_analyzer_demo():
+    res = analyze_log(SAMPLE_LOG)
+    res["summary"] = (f"{res['failed']} амжилтгүй нэвтрэлт илэрлээ. "
+                      f"{len(res['suspects'])} IP brute-force сэжигтэй: {', '.join(res['suspects'])}.")
+    main = """
+    <div class="page-h">Analysis · Demo</div>
+    <div class="page-t">📄 Log Analyzer <span class="demo-tag">SAMPLE</span></div>
+    <p class="page-s">Жишээ auth.log дээрх үр дүн. Өөрийн лог оруулахыг хүсвэл буцаж <a href="/log-analyzer" style="color:var(--purple)">Log Analyzer</a> руу ор.</p>
+    <div class="card">
+      <div class="metrics" style="grid-template-columns:repeat(4,1fr)">
+        <div class="metric"><div class="val">{{res.failed}}</div><div class="lab">Амжилтгүй</div></div>
+        <div class="metric"><div class="val">{{res.accepted}}</div><div class="lab">Амжилттай</div></div>
+        <div class="metric"><div class="val">{{res.unique_ips}}</div><div class="lab">Unique IP</div></div>
+        <div class="metric"><div class="val" style="color:var(--crit)">{{res.suspects|length}}</div><div class="lab">Сэжигтэй IP</div></div>
+      </div>
+      <div class="ai-hero" style="margin-top:4px"><b>🤖 AI Summary:</b> <span class="muted">{{res.summary}}</span></div>
+      <table><tr><th>IP</th><th>Оролдлого</th></tr>
+        {% for ip,c in res.top_ips %}<tr><td class="mono">{{ip}}</td><td>{{c}} {% if c>=res.threshold %}<span class="badge b-crit">BRUTE</span>{% endif %}</td></tr>{% endfor %}
+      </table>
+    </div>
+    """
+    return shell(main, "log", "Log Analyzer", res=res)
+
+
+# ====================================================================
+# Network Scanner (бодит — Nmap output parsing)
+# ====================================================================
+SAMPLE_NMAP = """Nmap scan report for ubuntu-server-01 (192.168.56.20)
+Host is up (0.00032s latency).
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+443/tcp closed https
+
+Nmap scan report for kali-lab-01 (192.168.56.10)
+Host is up.
+PORT     STATE SERVICE
+22/tcp   open  ssh
+3389/tcp closed ms-wbt-server"""
+
+
+@app.route("/scanner", methods=["GET", "POST"])
+def scanner():
+    hosts = None
+    text = ""
+    if request.method == "POST":
+        text = request.form.get("text", "")
+        if text.strip():
+            hosts = parse_nmap(text)
+    main = """
+    <div class="page-h">Analysis</div>
+    <div class="page-t">📶 Network Scanner</div>
+    <p class="page-s">Зөвшөөрөгдсөн лабд хийсэн <b>Nmap</b>-ийн гаралтыг энд буулгаж задлан харуулна.
+    (Энэ хэрэгсэл скан хийдэггүй — зөвхөн таны импортолсон үр дүнг уншина. LAB-002-той холбоотой.)</p>
+    <div class="card">
+      <form method="post">
+        <label>Nmap гаралт (жишээ: <code>nmap 192.168.56.20</code>-ийн текст)</label>
+        <textarea name="text" rows="8" style="width:100%;padding:11px 13px;background:rgba(7,10,18,.6);border:1px solid var(--border);border-radius:11px;color:var(--fg);font-family:'JetBrains Mono',monospace;font-size:12px" placeholder="Nmap scan report for ...">{{ text }}</textarea>
+        <button type="submit">Задлах</button>
+        <button type="submit" formaction="/scanner/demo" formmethod="get" class="alt">Жишээгээр туршъя</button>
+      </form>
+      {% if hosts is not none %}
+      <hr>
+      {% if hosts %}
+      {% for h in hosts %}
+        <h2 style="font-size:15px">🖥️ {{ h.host }}</h2>
+        <table><tr><th>Port</th><th>Proto</th><th>State</th><th>Service</th></tr>
+          {% for p in h.ports %}<tr>
+            <td class="mono">{{p.port}}</td><td class="mono">{{p.proto}}</td>
+            <td><span class="badge {{ 'b-low' if p.state=='open' else 'b-open' }}">{{p.state}}</span></td>
+            <td class="mono">{{p.svc}}</td></tr>{% endfor %}
+        </table>
+      {% endfor %}
+      {% else %}<div class="flash err">⚠ Nmap гаралт таниагдсангүй. "Nmap scan report for ..." мөр байгаа эсэхийг шалга.</div>{% endif %}
+      {% endif %}
+    </div>
+    """
+    return shell(main, "scanner", "Network Scanner", hosts=hosts, text=text)
+
+
+@app.route("/scanner/demo")
+def scanner_demo():
+    hosts = parse_nmap(SAMPLE_NMAP)
+    main = """
+    <div class="page-h">Analysis · Demo</div>
+    <div class="page-t">📶 Network Scanner <span class="demo-tag">SAMPLE</span></div>
+    <p class="page-s">Жишээ Nmap гаралт. Өөрийнхөө оруулахыг хүсвэл <a href="/scanner" style="color:var(--purple)">Network Scanner</a> руу ор.</p>
+    <div class="card">
+      {% for h in hosts %}
+        <h2 style="font-size:15px">🖥️ {{ h.host }}</h2>
+        <table><tr><th>Port</th><th>Proto</th><th>State</th><th>Service</th></tr>
+          {% for p in h.ports %}<tr><td class="mono">{{p.port}}</td><td class="mono">{{p.proto}}</td>
+            <td><span class="badge {{ 'b-low' if p.state=='open' else 'b-open' }}">{{p.state}}</span></td>
+            <td class="mono">{{p.svc}}</td></tr>{% endfor %}
+        </table>
+      {% endfor %}
+    </div>
+    """
+    return shell(main, "scanner", "Network Scanner", hosts=hosts)
+
+
+# ====================================================================
+# Help / Хэрхэн ашиглах
+# ====================================================================
+@app.route("/help")
+def help_page():
+    main = """
+    <div class="page-h">System</div>
+    <div class="page-t">❓ Хэрхэн ашиглах вэ</div>
+    <p class="page-s">CyberSentinel AI-ийн ажилладаг хэрэгслүүд ба тэдгээрийг ашиглах заавар.</p>
+
+    <div class="card">
+      <h2>🔑 Password Analyzer</h2>
+      <p class="desc">Нууц үгийн хүчийг шалгана. Нууц үгээ бичээд <b>Шалгах</b> дар → 0-100 оноо, үнэлгээ, сайжруулах зөвлөмж гарна. Нууц үг хадгалагдахгүй.</p>
+    </div>
+    <div class="card">
+      <h2>🧾 File Integrity</h2>
+      <p class="desc">1) Шалгах фолдерынхоо бүтэн замыг оруул → <b>Baseline үүсгэх</b>. 2) Дараа нь дахин орж <b>Шалгах</b> → өөрчлөгдсөн/нэмэгдсэн/устсан файлыг илрүүлнэ. Жишээ зам: <code>C:\\Users\\yalguunjargal.j\\cyber-labs\\02-integrity\\testdir</code></p>
+    </div>
+    <div class="card">
+      <h2>🔐 Crypto Lab</h2>
+      <p class="desc"><b>Hash Generator</b> — текстээс hash. <b>Salting</b> — salt-ийн нөлөө. <b>Encoding</b> — Base64/Hex (шифрлэлт биш!). <b>Caesar</b> — классик шифр + brute force. <b>AES файл</b> — файл сонгоод нууц үгээр шифрлэ/задал.</p>
+    </div>
+    <div class="card">
+      <h2>📄 Log Analyzer</h2>
+      <p class="desc">SSH auth.log оруул (файл эсвэл текст) → амжилтгүй нэвтрэлт, brute-force сэжигтэй IP-г илрүүлнэ. Туршихдаа <b>"Жишээ логоор туршъя"</b> дар. Өөрийн Linux VM-ийн <code>/var/log/auth.log</code>-ийг оруулж болно.</p>
+    </div>
+    <div class="card">
+      <h2>📶 Network Scanner</h2>
+      <p class="desc">Терминал дээр <code>nmap 127.0.0.1</code> ажиллуулаад гарсан текстийг хуулж энд буулга → задлан хүснэгтээр харуулна. Энэ хэрэгсэл өөрөө скан хийхгүй, зөвхөн таны импортолсон үр дүнг уншина.</p>
+    </div>
+    <div class="card" style="border-color:var(--border2)">
+      <p class="muted" style="margin:0">🚧 <b>Roadmap, Calendar, Daily Scrum</b> зэрэг Learning/Planning модулиуд нь таны
+      <code>Cybersecurity-Workspace</code> фолдерын markdown файлуудад байгаа. Эдгээрийг вэб дээр биш, workspace дотор хөтлөнө.</p>
+    </div>
+    """
+    return shell(main, "help", "Help")
 
 
 # ====================================================================
