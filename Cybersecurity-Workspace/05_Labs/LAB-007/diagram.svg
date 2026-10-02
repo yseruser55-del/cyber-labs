@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="800" height="380" fill="#f7f5ef"/>
+  <text x="400" y="38" text-anchor="middle" font-size="22" font-weight="700" fill="#1a2332">LAB-007 — Windows Event Log Analysis</text>
+  <text x="400" y="62" text-anchor="middle" font-size="14" fill="#5a6372">Олон Event 4625 богино зайтай = brute force шинж</text>
+
+  <!-- attempts -->
+  <rect x="60" y="100" width="210" height="200" rx="10" fill="#ffffff" stroke="#6366f1" stroke-width="2"/>
+  <text x="165" y="126" text-anchor="middle" font-size="14" font-weight="700" fill="#1a2332">Нэвтрэх оролдлого</text>
+  <text x="165" y="156" text-anchor="middle" font-size="12" fill="#b91c1c">10:15:32 буруу нууц үг</text>
+  <text x="165" y="180" text-anchor="middle" font-size="12" fill="#b91c1c">10:15:34 буруу нууц үг</text>
+  <text x="165" y="204" text-anchor="middle" font-size="12" fill="#b91c1c">10:15:36 буруу нууц үг</text>
+  <text x="165" y="228" text-anchor="middle" font-size="12" fill="#b91c1c">10:15:38 буруу нууц үг</text>
+  <text x="165" y="252" text-anchor="middle" font-size="12" fill="#b91c1c">10:15:40 буруу нууц үг</text>
+  <text x="165" y="282" text-anchor="middle" font-size="12" fill="#15803d">10:16:01 амжилттай?</text>
+
+  <line x1="270" y1="200" x2="340" y2="200" stroke="#6366f1" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- event log -->
+  <rect x="350" y="120" width="190" height="160" rx="10" fill="#eef0fd" stroke="#a855f7" stroke-width="2"/>
+  <text x="445" y="150" text-anchor="middle" font-size="14" font-weight="700" fill="#6b21a8">Security Event Log</text>
+  <text x="445" y="182" text-anchor="middle" font-size="13" fill="#b91c1c">ID 4625 ✗ амжилтгүй</text>
+  <text x="445" y="208" text-anchor="middle" font-size="13" fill="#15803d">ID 4624 ✓ амжилттай</text>
+  <text x="445" y="234" text-anchor="middle" font-size="13" fill="#92600c">ID 4740 🔒 түгжигдсэн</text>
+
+  <line x1="540" y1="200" x2="610" y2="200" stroke="#a855f7" stroke-width="2.5" marker-end="url(#b)"/>
+
+  <!-- alert -->
+  <rect x="620" y="150" width="140" height="100" rx="10" fill="#fdeaea" stroke="#ef4444" stroke-width="2"/>
+  <text x="690" y="195" text-anchor="middle" font-size="26">🚨</text>
+  <text x="690" y="228" text-anchor="middle" font-size="13" font-weight="700" fill="#b91c1c">Brute force!</text>
+
+  <text x="400" y="345" text-anchor="middle" font-size="13" fill="#5a6372">Blue Team: лог уншиж халдлагын хэв маягийг таних (detection)</text>
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6366f1"/></marker>
+    <marker id="b" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#a855f7"/></marker>
+  </defs>
+</svg>

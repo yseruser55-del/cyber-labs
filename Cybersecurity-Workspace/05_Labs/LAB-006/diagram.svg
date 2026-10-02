@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="800" height="380" fill="#f7f5ef"/>
+  <text x="400" y="38" text-anchor="middle" font-size="22" font-weight="700" fill="#1a2332">LAB-006 — Dictionary Attack (өөрийн hash дээр)</text>
+  <text x="400" y="62" text-anchor="middle" font-size="14" fill="#5a6372">John the Ripper: толь бичгийн үгсийг hash-лаж тулгана</text>
+
+  <!-- wordlist -->
+  <rect x="60" y="120" width="180" height="140" rx="10" fill="#ffffff" stroke="#6366f1" stroke-width="2"/>
+  <text x="150" y="146" text-anchor="middle" font-size="14" font-weight="700" fill="#1a2332">rockyou.txt</text>
+  <text x="150" y="172" text-anchor="middle" font-size="12" fill="#5a6372">123456</text>
+  <text x="150" y="192" text-anchor="middle" font-size="12" fill="#5a6372">password</text>
+  <text x="150" y="212" text-anchor="middle" font-size="12" fill="#5a6372">password123 ✓</text>
+  <text x="150" y="232" text-anchor="middle" font-size="12" fill="#5a6372">qwerty ...</text>
+
+  <!-- john -->
+  <rect x="310" y="150" width="180" height="80" rx="10" fill="#eef0fd" stroke="#a855f7" stroke-width="2"/>
+  <text x="400" y="182" text-anchor="middle" font-size="15" font-weight="700" fill="#6b21a8">John the Ripper</text>
+  <text x="400" y="204" text-anchor="middle" font-size="11" fill="#5a6372">үг бүрийг hash-лаж тулга</text>
+
+  <line x1="240" y1="190" x2="308" y2="190" stroke="#6366f1" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- results -->
+  <rect x="560" y="110" width="200" height="54" rx="8" fill="#fdeaea" stroke="#ef4444" stroke-width="2"/>
+  <text x="660" y="133" text-anchor="middle" font-size="13" font-weight="700" fill="#b91c1c">password123</text>
+  <text x="660" y="152" text-anchor="middle" font-size="11" fill="#5a6372">⚡ секундэд тайлагдав</text>
+
+  <rect x="560" y="218" width="200" height="54" rx="8" fill="#e9f9ef" stroke="#22c55e" stroke-width="2"/>
+  <text x="660" y="241" text-anchor="middle" font-size="12" font-weight="700" fill="#15803d">Xk9$mQ2!vR7p...</text>
+  <text x="660" y="260" text-anchor="middle" font-size="11" fill="#5a6372">🛡 тайлагдсангүй</text>
+
+  <line x1="490" y1="170" x2="558" y2="140" stroke="#ef4444" stroke-width="2.5" marker-end="url(#c)"/>
+  <line x1="490" y1="210" x2="558" y2="240" stroke="#22c55e" stroke-width="2.5" marker-end="url(#b)"/>
+
+  <text x="400" y="345" text-anchor="middle" font-size="13" fill="#5a6372">Урт + санамсаргүй + salt = практикт эвдэшгүй · ⚖️ зөвхөн өөрийн hash</text>
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6366f1"/></marker>
+    <marker id="b" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#22c55e"/></marker>
+    <marker id="c" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ef4444"/></marker>
+  </defs>
+</svg>

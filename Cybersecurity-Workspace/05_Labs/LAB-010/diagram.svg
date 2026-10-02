@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="800" height="380" fill="#f7f5ef"/>
+  <text x="400" y="36" text-anchor="middle" font-size="22" font-weight="700" fill="#1a2332">LAB-010 — Firewall (ufw) + Suricata IDS</text>
+  <text x="400" y="60" text-anchor="middle" font-size="14" fill="#5a6372">Хамгаалалт (хаах) + Илрүүлэлт (alert) = Defense in Depth</text>
+
+  <!-- attacker -->
+  <rect x="50" y="150" width="150" height="80" rx="10" fill="#fdeaea" stroke="#ef4444" stroke-width="2"/>
+  <text x="125" y="182" text-anchor="middle" font-size="14" font-weight="700" fill="#b91c1c">Скан эх</text>
+  <text x="125" y="204" text-anchor="middle" font-size="11" fill="#5a6372">nmap -sS VM-IP</text>
+
+  <line x1="200" y1="190" x2="255" y2="190" stroke="#ef4444" stroke-width="2.5" marker-end="url(#c)"/>
+
+  <!-- firewall -->
+  <rect x="260" y="130" width="120" height="120" rx="10" fill="#eef0fd" stroke="#6366f1" stroke-width="2"/>
+  <text x="320" y="160" text-anchor="middle" font-size="26">🧱</text>
+  <text x="320" y="188" text-anchor="middle" font-size="13" font-weight="700" fill="#1a2332">ufw</text>
+  <text x="320" y="210" text-anchor="middle" font-size="10" fill="#5a6372">default deny</text>
+  <text x="320" y="226" text-anchor="middle" font-size="10" fill="#15803d">allow 22 only</text>
+
+  <line x1="380" y1="190" x2="430" y2="190" stroke="#6366f1" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- IDS -->
+  <rect x="435" y="130" width="130" height="120" rx="10" fill="#fff8e8" stroke="#f59e0b" stroke-width="2"/>
+  <text x="500" y="160" text-anchor="middle" font-size="26">👁️</text>
+  <text x="500" y="188" text-anchor="middle" font-size="13" font-weight="700" fill="#1a2332">Suricata IDS</text>
+  <text x="500" y="210" text-anchor="middle" font-size="10" fill="#5a6372">урсгалыг дүрэмтэй</text>
+  <text x="500" y="226" text-anchor="middle" font-size="10" fill="#5a6372">тулгаж шалгана</text>
+
+  <line x1="565" y1="190" x2="615" y2="190" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#b)"/>
+
+  <!-- alert -->
+  <rect x="620" y="140" width="140" height="100" rx="10" fill="#ffffff" stroke="#ef4444" stroke-width="2"/>
+  <text x="690" y="178" text-anchor="middle" font-size="22">🚨</text>
+  <text x="690" y="205" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">fast.log alert</text>
+  <text x="690" y="225" text-anchor="middle" font-size="10" fill="#5a6372">"port scan detected"</text>
+
+  <text x="400" y="320" text-anchor="middle" font-size="13" fill="#5a6372">Firewall хаана · IDS илрүүлж alert өгнө · аналист triage хийнэ</text>
+  <text x="400" y="344" text-anchor="middle" font-size="12" fill="#5a6372">Энэ лаб = Networking + Linux + Log analysis-ийн нэгдэл</text>
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6366f1"/></marker>
+    <marker id="b" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#f59e0b"/></marker>
+    <marker id="c" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#ef4444"/></marker>
+  </defs>
+</svg>

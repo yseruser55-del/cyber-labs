@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="800" height="400" fill="#f7f5ef"/>
+  <text x="400" y="36" text-anchor="middle" font-size="22" font-weight="700" fill="#1a2332">LAB-009 — Web Security: SQLi &amp; XSS</text>
+  <text x="400" y="60" text-anchor="middle" font-size="14" fill="#5a6372">OWASP Juice Shop (зориуд эмзэг апп, localhost:3000)</text>
+
+  <!-- SQLi row -->
+  <rect x="40" y="90" width="230" height="120" rx="10" fill="#ffffff" stroke="#6366f1" stroke-width="2"/>
+  <text x="155" y="114" text-anchor="middle" font-size="14" font-weight="700" fill="#1a2332">SQL Injection</text>
+  <text x="155" y="140" text-anchor="middle" font-size="12" fill="#5a6372">Login → Email талбарт:</text>
+  <text x="155" y="162" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">' OR 1=1--</text>
+  <text x="155" y="188" text-anchor="middle" font-size="11" fill="#5a6372">→ нэвтрэлтийг тойрч гарна</text>
+
+  <rect x="300" y="90" width="200" height="120" rx="10" fill="#eef0fd" stroke="#a855f7" stroke-width="2"/>
+  <text x="400" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#6b21a8">Шалтгаан</text>
+  <text x="400" y="146" text-anchor="middle" font-size="11" fill="#5a6372">Оролтыг шууд SQL-д</text>
+  <text x="400" y="164" text-anchor="middle" font-size="11" fill="#5a6372">нааж query гажуудав</text>
+  <text x="400" y="190" text-anchor="middle" font-size="11" fill="#15803d">Fix: parameterized query</text>
+
+  <!-- XSS row -->
+  <rect x="40" y="230" width="230" height="120" rx="10" fill="#ffffff" stroke="#6366f1" stroke-width="2"/>
+  <text x="155" y="254" text-anchor="middle" font-size="14" font-weight="700" fill="#1a2332">XSS</text>
+  <text x="155" y="280" text-anchor="middle" font-size="12" fill="#5a6372">Search талбарт:</text>
+  <text x="155" y="302" text-anchor="middle" font-size="11" font-weight="700" fill="#b91c1c">&lt;iframe src=js:alert()&gt;</text>
+  <text x="155" y="328" text-anchor="middle" font-size="11" fill="#5a6372">→ JS browser дээр ажиллана</text>
+
+  <rect x="300" y="230" width="200" height="120" rx="10" fill="#eef0fd" stroke="#a855f7" stroke-width="2"/>
+  <text x="400" y="258" text-anchor="middle" font-size="13" font-weight="700" fill="#6b21a8">Шалтгаан</text>
+  <text x="400" y="286" text-anchor="middle" font-size="11" fill="#5a6372">Оролтыг encode хийлгүй</text>
+  <text x="400" y="304" text-anchor="middle" font-size="11" fill="#5a6372">HTML-д буулгав</text>
+  <text x="400" y="330" text-anchor="middle" font-size="11" fill="#15803d">Fix: output encoding, CSP</text>
+
+  <!-- principle -->
+  <rect x="530" y="140" width="235" height="160" rx="12" fill="#fff8e8" stroke="#f59e0b" stroke-width="2"/>
+  <text x="647" y="172" text-anchor="middle" font-size="15" font-weight="700" fill="#92600c">Build it</text>
+  <text x="647" y="200" text-anchor="middle" font-size="15" font-weight="700" fill="#92600c">Break it</text>
+  <text x="647" y="228" text-anchor="middle" font-size="15" font-weight="700" fill="#92600c">Fix it</text>
+  <text x="647" y="262" text-anchor="middle" font-size="11" fill="#5a6372">⚖️ зөвхөн зориуд эмзэг</text>
+  <text x="647" y="280" text-anchor="middle" font-size="11" fill="#5a6372">өөрийн лаб дээр</text>
+
+  <text x="400" y="384" text-anchor="middle" font-size="13" fill="#5a6372">Үндсэн шалтгаан: input validation / output encoding дутуу (OWASP Top 10)</text>
+</svg>
